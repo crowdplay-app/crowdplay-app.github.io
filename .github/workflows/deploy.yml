@@ -28,7 +28,7 @@ jobs:
 
       - name: Install & Build
         run: |
-          npm ci
+          npm install
           npm run build
 
       - uses: actions/configure-pages@v4
