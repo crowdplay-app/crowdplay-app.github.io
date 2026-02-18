@@ -99,7 +99,7 @@ export default function App() {
         <div className="split-block">
           <h2>For <span className="gradient-text">DJs</span></h2>
           <ul>
-            <li>Create unlimited sessions with shareable QR codes</li>
+            <li>Create up to 20 sessions with shareable QR codes</li>
             <li>Reorder, skip, or remove songs in real time</li>
             <li>End a session and come back later — your queue stays</li>
             <li>See who requested what and how many votes it got</li>
