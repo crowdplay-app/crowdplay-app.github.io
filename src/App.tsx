@@ -85,39 +85,68 @@ function RotatingGlobe() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
     const dpr = window.devicePixelRatio || 1;
-    const size = 280;
+    const size = 300;
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     ctx.scale(dpr, dpr);
     const cx = size / 2;
     const cy = size / 2;
-    const R = 100; // globe radius
+    const R = 120;
+
+    // Define great circles as tilted planes (tiltX, tiltY, tiltZ in radians)
+    // Each represents a full great circle at a unique 3D orientation
+    const circles = [
+      { tx: 0.3,  ty: 0.0,  tz: 0.1  },
+      { tx: 1.2,  ty: 0.5,  tz: 0.3  },
+      { tx: 0.6,  ty: 1.1,  tz: 0.8  },
+      { tx: 1.5,  ty: 0.3,  tz: 1.2  },
+      { tx: 0.1,  ty: 1.4,  tz: 0.5  },
+      { tx: 0.9,  ty: 0.8,  tz: 1.5  },
+      { tx: 1.3,  ty: 1.2,  tz: 0.2  },
+      { tx: 0.4,  ty: 0.6,  tz: 1.0  },
+      { tx: 1.0,  ty: 1.5,  tz: 0.7  },
+      { tx: 0.7,  ty: 0.2,  tz: 1.4  },
+    ];
 
     let rotation = 0;
     let frame: number;
 
+    // Rotate point (x,y,z) around Y axis by angle
+    function rotY(x: number, y: number, z: number, a: number) {
+      const c = Math.cos(a), s = Math.sin(a);
+      return [c * x + s * z, y, -s * x + c * z];
+    }
+    function rotX(x: number, y: number, z: number, a: number) {
+      const c = Math.cos(a), s = Math.sin(a);
+      return [x, c * y - s * z, s * y + c * z];
+    }
+    function rotZ(x: number, y: number, z: number, a: number) {
+      const c = Math.cos(a), s = Math.sin(a);
+      return [c * x - s * y, s * x + c * y, z];
+    }
+
     function drawGlobe(rot: number) {
       ctx.clearRect(0, 0, size, size);
 
-      // ── Light rays (blurred streaks from center) ──
+      // ── Soft light rays from center ──
       const rayCount = 12;
       const time = rot * 0.3;
       for (let i = 0; i < rayCount; i++) {
-        const angle = (i / rayCount) * Math.PI * 2 + time * 0.2;
+        const angle = (i / rayCount) * Math.PI * 2 + time * 0.15;
         const pulse = 0.4 + 0.3 * Math.sin(time + i * 0.8);
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(angle);
-        const rayGrad = ctx.createLinearGradient(0, 0, R + 40, 0);
-        rayGrad.addColorStop(0, `rgba(162, 106, 235, ${0.25 * pulse})`);
-        rayGrad.addColorStop(0.5, `rgba(162, 106, 235, ${0.1 * pulse})`);
+        const rayGrad = ctx.createLinearGradient(0, 0, R + 30, 0);
+        rayGrad.addColorStop(0, `rgba(162, 106, 235, ${0.18 * pulse})`);
+        rayGrad.addColorStop(0.5, `rgba(162, 106, 235, ${0.07 * pulse})`);
         rayGrad.addColorStop(1, 'rgba(162, 106, 235, 0)');
         ctx.fillStyle = rayGrad;
         ctx.filter = 'blur(8px)';
         ctx.beginPath();
         ctx.moveTo(0, -3);
-        ctx.lineTo(R + 40, -2 - 3 * pulse);
-        ctx.lineTo(R + 40, 2 + 3 * pulse);
+        ctx.lineTo(R + 30, -2 - 3 * pulse);
+        ctx.lineTo(R + 30, 2 + 3 * pulse);
         ctx.lineTo(0, 3);
         ctx.closePath();
         ctx.fill();
@@ -125,67 +154,49 @@ function RotatingGlobe() {
         ctx.restore();
       }
 
-      // ── Outer glow ──
-      const outerGlow = ctx.createRadialGradient(cx, cy, R * 0.8, cx, cy, R * 1.4);
-      outerGlow.addColorStop(0, 'rgba(162, 106, 235, 0.07)');
-      outerGlow.addColorStop(1, 'rgba(162, 106, 235, 0)');
-      ctx.fillStyle = outerGlow;
-      ctx.beginPath();
-      ctx.arc(cx, cy, R * 1.4, 0, Math.PI * 2);
-      ctx.fill();
-
-      // ── Latitude lines ──
-      const latitudes = [-60, -35, -15, 15, 35, 60];
-      for (const lat of latitudes) {
-        const latRad = (lat * Math.PI) / 180;
-        const y = cy - R * Math.sin(latRad);
-        const rAtLat = R * Math.cos(latRad);
-        const squeeze = 0.22;
-        ctx.strokeStyle = 'rgba(162, 106, 235, 0.3)';
-        ctx.lineWidth = 1;
+      // ── Draw great circles ──
+      const steps = 120;
+      for (const circle of circles) {
+        ctx.strokeStyle = 'rgba(162, 106, 235, 0.55)';
+        ctx.lineWidth = 1.8;
         ctx.beginPath();
-        ctx.ellipse(cx, y, rAtLat, rAtLat * squeeze, 0, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      // ── Equator (slightly brighter) ──
-      ctx.strokeStyle = 'rgba(162, 106, 235, 0.45)';
-      ctx.lineWidth = 1.2;
-      ctx.beginPath();
-      ctx.ellipse(cx, cy, R, R * 0.22, 0, 0, Math.PI * 2);
-      ctx.stroke();
-
-      // ── Longitude arcs (rotating) ──
-      const lonCount = 8;
-      for (let i = 0; i < lonCount; i++) {
-        const lon = ((i / lonCount) * Math.PI) + rot;
-        const depth = Math.sin(lon); // -1 to 1, how "facing us" the line is
-        const alpha = 0.12 + 0.33 * Math.abs(depth);
-        ctx.strokeStyle = `rgba(162, 106, 235, ${alpha})`;
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        for (let a = -Math.PI / 2; a <= Math.PI / 2; a += 0.04) {
-          const projX = cx + R * Math.cos(a) * Math.sin(lon);
-          const projY = cy - R * Math.sin(a);
-          if (a === -Math.PI / 2) {
-            ctx.moveTo(projX, projY);
+        let started = false;
+        for (let i = 0; i <= steps; i++) {
+          const t = (i / steps) * Math.PI * 2;
+          // Start with unit circle in XY plane
+          let px = Math.cos(t);
+          let py = Math.sin(t);
+          let pz = 0;
+          // Tilt this great circle into its unique orientation
+          [px, py, pz] = rotX(px, py, pz, circle.tx);
+          [px, py, pz] = rotZ(px, py, pz, circle.tz);
+          [px, py, pz] = rotY(px, py, pz, circle.ty);
+          // Apply global rotation (animation)
+          [px, py, pz] = rotY(px, py, pz, rot);
+          // Orthographic projection: screen x = px, screen y = py
+          const sx = cx + px * R;
+          const sy = cy - py * R;
+          if (!started) {
+            ctx.moveTo(sx, sy);
+            started = true;
           } else {
-            ctx.lineTo(projX, projY);
+            ctx.lineTo(sx, sy);
           }
         }
+        ctx.closePath();
         ctx.stroke();
       }
 
-      // ── Sphere outline ──
-      ctx.strokeStyle = 'rgba(162, 106, 235, 0.5)';
-      ctx.lineWidth = 1.5;
+      // ── Outer sphere outline (thicker) ──
+      ctx.strokeStyle = 'rgba(162, 106, 235, 0.7)';
+      ctx.lineWidth = 2.5;
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
       ctx.stroke();
     }
 
     function animate() {
-      rotation += 0.008;
+      rotation += 0.004;
       drawGlobe(rotation);
       frame = requestAnimationFrame(animate);
     }
@@ -199,7 +210,7 @@ function RotatingGlobe() {
       <canvas
         ref={canvasRef}
         className="globe-canvas"
-        style={{ width: 280, height: 280 }}
+        style={{ width: 300, height: 300 }}
       />
     </div>
   );
