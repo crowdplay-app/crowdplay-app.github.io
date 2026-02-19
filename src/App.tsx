@@ -111,30 +111,52 @@ function RotatingGlobe() {
 
     let rotation = 0;
     let frame: number;
+    const startTime = performance.now();
+    // 120 BPM = 2 beats/sec = beat period of 500ms
+    const BPM = 120;
+    const beatPeriod = 60000 / BPM; // 500ms
 
-    function drawGlobe(rot: number) {
+    function drawGlobe(rot: number, now: number) {
       ctx.clearRect(0, 0, size, size);
 
-      // ── Soft light rays from center ──
-      const rayCount = 12;
-      const time = rot * 0.3;
+      // Beat phase: 0→1 over each beat cycle
+      const beatPhase = ((now - startTime) % beatPeriod) / beatPeriod;
+      // Sharp attack, smooth decay (like a real beat pulse)
+      const beat = Math.pow(1 - beatPhase, 3);
+
+      // ── Large background glow (pulsing at 120bpm) ──
+      const glowRadius = R * (1.3 + 0.25 * beat);
+      const glowAlpha = 0.12 + 0.28 * beat;
+      const innerGlow = ctx.createRadialGradient(cx, cy, R * 0.1, cx, cy, glowRadius);
+      innerGlow.addColorStop(0, `rgba(162, 106, 235, ${glowAlpha})`);
+      innerGlow.addColorStop(0.5, `rgba(162, 106, 235, ${glowAlpha * 0.4})`);
+      innerGlow.addColorStop(1, 'rgba(162, 106, 235, 0)');
+      ctx.fillStyle = innerGlow;
+      ctx.beginPath();
+      ctx.arc(cx, cy, glowRadius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // ── Soft light rays from center (pulsing) ──
+      const rayCount = 14;
+      const rayIntensity = 0.5 + 0.5 * beat;
       for (let i = 0; i < rayCount; i++) {
-        const angle = (i / rayCount) * Math.PI * 2 + time * 0.15;
-        const pulse = 0.4 + 0.3 * Math.sin(time + i * 0.8);
+        const angle = (i / rayCount) * Math.PI * 2 + rot * 0.15;
+        const rayLen = R + 30 + 20 * beat;
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(angle);
-        const rayGrad = ctx.createLinearGradient(0, 0, R + 30, 0);
-        rayGrad.addColorStop(0, `rgba(162, 106, 235, ${0.18 * pulse})`);
-        rayGrad.addColorStop(0.5, `rgba(162, 106, 235, ${0.07 * pulse})`);
+        const rayGrad = ctx.createLinearGradient(0, 0, rayLen, 0);
+        rayGrad.addColorStop(0, `rgba(162, 106, 235, ${0.3 * rayIntensity})`);
+        rayGrad.addColorStop(0.4, `rgba(162, 106, 235, ${0.12 * rayIntensity})`);
         rayGrad.addColorStop(1, 'rgba(162, 106, 235, 0)');
         ctx.fillStyle = rayGrad;
-        ctx.filter = 'blur(8px)';
+        ctx.filter = 'blur(6px)';
+        const width = 3 + 2 * beat;
         ctx.beginPath();
-        ctx.moveTo(0, -3);
-        ctx.lineTo(R + 30, -2 - 3 * pulse);
-        ctx.lineTo(R + 30, 2 + 3 * pulse);
-        ctx.lineTo(0, 3);
+        ctx.moveTo(0, -width);
+        ctx.lineTo(rayLen, -width * 0.5);
+        ctx.lineTo(rayLen, width * 0.5);
+        ctx.lineTo(0, width);
         ctx.closePath();
         ctx.fill();
         ctx.filter = 'none';
@@ -198,17 +220,31 @@ function RotatingGlobe() {
         ctx.stroke();
       }
 
-      // ── Outer sphere outline (thicker) ──
-      ctx.strokeStyle = 'rgba(162, 106, 235, 0.7)';
-      ctx.lineWidth = 2.5;
+      // ── Outer sphere outline (pulsing at 120bpm) ──
+      const outlineAlpha = 0.5 + 0.35 * beat;
+      const outlineWidth = 2.0 + 1.5 * beat;
+      ctx.strokeStyle = `rgba(162, 106, 235, ${outlineAlpha})`;
+      ctx.lineWidth = outlineWidth;
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
       ctx.stroke();
+
+      // ── Outline glow on beat ──
+      if (beat > 0.1) {
+        ctx.strokeStyle = `rgba(162, 106, 235, ${0.15 * beat})`;
+        ctx.lineWidth = 6 * beat;
+        ctx.filter = 'blur(4px)';
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.filter = 'none';
+      }
     }
 
     function animate() {
       rotation += 0.004;
-      drawGlobe(rotation);
+      const now = performance.now();
+      drawGlobe(rotation, now);
       frame = requestAnimationFrame(animate);
     }
     animate();
