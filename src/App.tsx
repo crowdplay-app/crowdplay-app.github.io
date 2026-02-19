@@ -85,13 +85,13 @@ function RotatingGlobe() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
     const dpr = window.devicePixelRatio || 1;
-    const size = 200;
+    const size = 280;
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     ctx.scale(dpr, dpr);
     const cx = size / 2;
     const cy = size / 2;
-    const R = 62; // globe radius
+    const R = 100; // globe radius
 
     let rotation = 0;
     let frame: number;
@@ -108,17 +108,17 @@ function RotatingGlobe() {
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(angle);
-        const rayGrad = ctx.createLinearGradient(0, 0, R + 36, 0);
-        rayGrad.addColorStop(0, `rgba(162, 106, 235, ${0.35 * pulse})`);
-        rayGrad.addColorStop(0.5, `rgba(162, 106, 235, ${0.15 * pulse})`);
+        const rayGrad = ctx.createLinearGradient(0, 0, R + 40, 0);
+        rayGrad.addColorStop(0, `rgba(162, 106, 235, ${0.25 * pulse})`);
+        rayGrad.addColorStop(0.5, `rgba(162, 106, 235, ${0.1 * pulse})`);
         rayGrad.addColorStop(1, 'rgba(162, 106, 235, 0)');
         ctx.fillStyle = rayGrad;
-        ctx.filter = 'blur(6px)';
+        ctx.filter = 'blur(8px)';
         ctx.beginPath();
-        ctx.moveTo(0, -4);
-        ctx.lineTo(R + 36, -2 - 3 * pulse);
-        ctx.lineTo(R + 36, 2 + 3 * pulse);
-        ctx.lineTo(0, 4);
+        ctx.moveTo(0, -3);
+        ctx.lineTo(R + 40, -2 - 3 * pulse);
+        ctx.lineTo(R + 40, 2 + 3 * pulse);
+        ctx.lineTo(0, 3);
         ctx.closePath();
         ctx.fill();
         ctx.filter = 'none';
@@ -126,57 +126,45 @@ function RotatingGlobe() {
       }
 
       // ── Outer glow ──
-      const outerGlow = ctx.createRadialGradient(cx, cy, R * 0.8, cx, cy, R * 1.5);
-      outerGlow.addColorStop(0, 'rgba(162, 106, 235, 0.12)');
+      const outerGlow = ctx.createRadialGradient(cx, cy, R * 0.8, cx, cy, R * 1.4);
+      outerGlow.addColorStop(0, 'rgba(162, 106, 235, 0.07)');
       outerGlow.addColorStop(1, 'rgba(162, 106, 235, 0)');
       ctx.fillStyle = outerGlow;
       ctx.beginPath();
-      ctx.arc(cx, cy, R * 1.5, 0, Math.PI * 2);
+      ctx.arc(cx, cy, R * 1.4, 0, Math.PI * 2);
       ctx.fill();
 
-      // ── Globe base sphere gradient ──
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.closePath();
-      ctx.clip();
-
-      // Main sphere gradient
-      const sphereGrad = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.3, R * 0.05, cx, cy, R);
-      sphereGrad.addColorStop(0, '#d4b0ff');
-      sphereGrad.addColorStop(0.3, '#a26aeb');
-      sphereGrad.addColorStop(0.7, '#7b3ec4');
-      sphereGrad.addColorStop(1, '#3a1070');
-      ctx.fillStyle = sphereGrad;
-      ctx.fillRect(cx - R, cy - R, R * 2, R * 2);
-
-      // ── Grid lines (latitude) ──
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.12)';
-      ctx.lineWidth = 0.8;
-      const latitudes = [-45, -20, 0, 20, 45];
+      // ── Latitude lines ──
+      const latitudes = [-60, -35, -15, 15, 35, 60];
       for (const lat of latitudes) {
         const latRad = (lat * Math.PI) / 180;
         const y = cy - R * Math.sin(latRad);
         const rAtLat = R * Math.cos(latRad);
-        const squeeze = 0.25;
+        const squeeze = 0.22;
+        ctx.strokeStyle = 'rgba(162, 106, 235, 0.3)';
+        ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.ellipse(cx, y, rAtLat, rAtLat * squeeze, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
 
-      // ── Grid lines (longitude) ── rotating ──
+      // ── Equator (slightly brighter) ──
+      ctx.strokeStyle = 'rgba(162, 106, 235, 0.45)';
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, R, R * 0.22, 0, 0, Math.PI * 2);
+      ctx.stroke();
+
+      // ── Longitude arcs (rotating) ──
       const lonCount = 8;
       for (let i = 0; i < lonCount; i++) {
         const lon = ((i / lonCount) * Math.PI) + rot;
-        const xScale = Math.cos(lon);
-        // Only draw if facing us (visible half)
-        ctx.strokeStyle = `rgba(255, 255, 255, ${0.06 + 0.08 * Math.abs(Math.sin(lon))})`;
-        ctx.lineWidth = 0.8;
+        const depth = Math.sin(lon); // -1 to 1, how "facing us" the line is
+        const alpha = 0.12 + 0.33 * Math.abs(depth);
+        ctx.strokeStyle = `rgba(162, 106, 235, ${alpha})`;
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        for (let a = -Math.PI / 2; a <= Math.PI / 2; a += 0.05) {
-          const px = cx + R * xScale * Math.cos(a) * Math.sin(a === -Math.PI / 2 ? 0 : 1);
-          const py = cy - R * Math.sin(a);
-          // Project longitude arc onto sphere
+        for (let a = -Math.PI / 2; a <= Math.PI / 2; a += 0.04) {
           const projX = cx + R * Math.cos(a) * Math.sin(lon);
           const projY = cy - R * Math.sin(a);
           if (a === -Math.PI / 2) {
@@ -188,38 +176,16 @@ function RotatingGlobe() {
         ctx.stroke();
       }
 
-      // ── Specular highlight ──
-      const specGrad = ctx.createRadialGradient(cx - R * 0.3, cy - R * 0.32, 0, cx - R * 0.3, cy - R * 0.32, R * 0.55);
-      specGrad.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
-      specGrad.addColorStop(0.5, 'rgba(255, 255, 255, 0.06)');
-      specGrad.addColorStop(1, 'rgba(255, 255, 255, 0)');
-      ctx.fillStyle = specGrad;
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.fill();
-
-      // ── Rim light (bottom-right edge) ──
-      const rimGrad = ctx.createRadialGradient(cx + R * 0.4, cy + R * 0.4, R * 0.6, cx + R * 0.4, cy + R * 0.4, R);
-      rimGrad.addColorStop(0, 'rgba(162, 106, 235, 0)');
-      rimGrad.addColorStop(0.8, 'rgba(162, 106, 235, 0.08)');
-      rimGrad.addColorStop(1, 'rgba(200, 160, 255, 0.2)');
-      ctx.fillStyle = rimGrad;
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.restore();
-
       // ── Sphere outline ──
-      ctx.strokeStyle = 'rgba(162, 106, 235, 0.3)';
-      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = 'rgba(162, 106, 235, 0.5)';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
       ctx.arc(cx, cy, R, 0, Math.PI * 2);
       ctx.stroke();
     }
 
     function animate() {
-      rotation += 0.012;
+      rotation += 0.008;
       drawGlobe(rotation);
       frame = requestAnimationFrame(animate);
     }
@@ -233,7 +199,7 @@ function RotatingGlobe() {
       <canvas
         ref={canvasRef}
         className="globe-canvas"
-        style={{ width: 200, height: 200 }}
+        style={{ width: 280, height: 280 }}
       />
     </div>
   );
