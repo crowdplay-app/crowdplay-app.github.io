@@ -77,6 +77,30 @@ function useFadeIn() {
   return ref;
 }
 
+function RotatingGlobe() {
+  return (
+    <div className="globe-wrapper">
+      {/* Blurred light rays */}
+      <div className="globe-rays" />
+      {/* Globe */}
+      <div className="globe">
+        <div className="globe-sphere">
+          {/* Latitude lines */}
+          <div className="globe-line globe-lat globe-lat-1" />
+          <div className="globe-line globe-lat globe-lat-2" />
+          <div className="globe-line globe-lat globe-lat-3" />
+          {/* Longitude lines (rotating) */}
+          <div className="globe-line globe-lon globe-lon-1" />
+          <div className="globe-line globe-lon globe-lon-2" />
+          <div className="globe-line globe-lon globe-lon-3" />
+          {/* Highlight / shine */}
+          <div className="globe-highlight" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [stats, setStats] = useState<{ djs: number; sessions: number } | null>(null);
   const heroRef = useFadeIn();
@@ -110,6 +134,7 @@ export default function App() {
       <section className="hero fade-in" ref={heroRef}>
         <div className="hero-glow" />
         <div className="hero-content">
+          <RotatingGlobe />
           <h1>
             Let Your Crowd<br />
             <span className="gradient-text">Pick the Music</span>

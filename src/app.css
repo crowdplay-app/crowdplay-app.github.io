@@ -121,7 +121,133 @@ ul { list-style: none; }
 
 .hero-content { position: relative; max-width: 700px; }
 
+/* ── Rotating Globe ───────────────────── */
+.globe-wrapper {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  margin: 0 auto 32px;
+}
 
+/* Blurred light rays emanating from center */
+.globe-rays {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 260px;
+  height: 260px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      from 0deg,
+      transparent 0deg,
+      rgba(162, 106, 235, 0.35) 15deg,
+      transparent 30deg,
+      transparent 60deg,
+      rgba(162, 106, 235, 0.3) 75deg,
+      transparent 90deg,
+      transparent 120deg,
+      rgba(162, 106, 235, 0.25) 135deg,
+      transparent 150deg,
+      transparent 180deg,
+      rgba(162, 106, 235, 0.35) 195deg,
+      transparent 210deg,
+      transparent 240deg,
+      rgba(162, 106, 235, 0.3) 255deg,
+      transparent 270deg,
+      transparent 300deg,
+      rgba(162, 106, 235, 0.25) 315deg,
+      transparent 330deg,
+      transparent 360deg
+    );
+  filter: blur(18px);
+  animation: rays-pulse 4s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes rays-pulse {
+  0%, 100% { opacity: 0.5; transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+  50% { opacity: 0.85; transform: translate(-50%, -50%) scale(1.12) rotate(15deg); }
+}
+
+/* The globe itself */
+.globe {
+  position: relative;
+  width: 140px;
+  height: 140px;
+  margin: 0 auto;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.globe-sphere {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #c49aff 0%, #a26aeb 40%, #7b3ec4 75%, #4a1d8a 100%);
+  box-shadow:
+    0 0 40px rgba(162, 106, 235, 0.4),
+    0 0 80px rgba(162, 106, 235, 0.15),
+    inset 0 0 30px rgba(74, 29, 138, 0.5);
+  overflow: hidden;
+  animation: globe-rotate-y 12s linear infinite;
+}
+
+@keyframes globe-rotate-y {
+  0%   { transform: rotateY(0deg)   rotateX(12deg); }
+  100% { transform: rotateY(360deg) rotateX(12deg); }
+}
+
+/* Shared line styles */
+.globe-line {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.18);
+  pointer-events: none;
+}
+
+/* Latitude (horizontal) rings – fixed */
+.globe-lat {
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 40%;
+}
+.globe-lat-1 { top: 10%; width: 70%; height: 14%; }
+.globe-lat-2 { top: 38%; width: 100%; height: 24%; }
+.globe-lat-3 { top: 66%; width: 70%; height: 14%; }
+
+/* Longitude (vertical) arcs – these rotate with the sphere */
+.globe-lon {
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 100%;
+  transform-origin: 0% 50%;
+  animation: lon-spin 12s linear infinite;
+}
+.globe-lon-1 { animation-delay: 0s; }
+.globe-lon-2 { animation-delay: -4s; }
+.globe-lon-3 { animation-delay: -8s; }
+
+@keyframes lon-spin {
+  0%   { transform: rotateY(0deg); }
+  100% { transform: rotateY(360deg); }
+}
+
+/* Glass-like highlight on the globe */
+.globe-highlight {
+  position: absolute;
+  top: 10%;
+  left: 12%;
+  width: 42%;
+  height: 42%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(255,255,255,0.35) 0%, transparent 70%);
+  pointer-events: none;
+}
 
 .hero h1 {
   font-size: clamp(2.5rem, 6vw, 4.2rem);
